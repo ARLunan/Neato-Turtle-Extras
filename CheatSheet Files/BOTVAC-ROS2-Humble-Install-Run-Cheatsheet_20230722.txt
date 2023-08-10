@@ -1,0 +1,103 @@
+Neato(R) Turtle ROS2 Humble Install & Run Cheatsheet	by Ross Lunan (arlunan@ieee.org)
+/Users/Ross/Documents/ROS Projects/Botvac-ROS2
+
+Based on Neato Turtle by Camp Peavy 
+Note: These scripts assume navigation2 is installed from Debian Repository and map.yaml files are saved at /home/ubuntu/Desktop/maps where Username = ubuntu > change these scripts if username is different
+Location to save maps: mkdir -p /home/ubuntu/Desktop/maps
+Location for Game Controller configuration .yaml files: mkdir -p /home/ubuntu/Desktop/config
+Location for usb_cam configuration param210.yaml file: mkdir -p /home/ubuntu/Desktop/usb_cam/config
+
+For Server RasPi, to copy config files from 
+
+INSTALL
+cpeavy2/botvac_node https://github.com/cpeavy2/botvac_node
+
+On WORKSTATION
+sudo apt install build-essential sudo apt install ros-humble-xacro sudo apt install python3-rosdep
+sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup
+sudo apt install top tree
+Optional gamepad: sudo apt install teleop_twist_joy
+
+On ROBOT
+sudo apt install build-essential sudo apt install ros-humble-xacro sudo apt install python3-rosdep
+sudo apt install top
+Optional gamepad: sudo apt install teleop_twist_joy
+Optional WebCam: sudo apt install ros-humble-usb-cam 
+
+$ mkdir -p botvac_ws/src
+$ cd botvac_ws/src
+git clone https://github.com/cpeavy2/botvac_node.git
+git clone https://github.com/cpeavy2/neato_robot.git
+git clone https://github.com/kobuki-base/cmd_vel_mux.git
+git clone https://github.com/stonier/ecl_tools
+
+cd ..
+$ rosdep update
+$ rosdep install --from-paths src --ignore-src -r -y
+And finally, go back to your workspace directory and compile the code.
+$ cd ~/botvac_ws
+$ botvac_ws
+   colcon build
+
+source ~/botvac_ws/install/setup.bash        # sources setup.bash for current session
+echo 'source ~/botvac_ws/install/setup.bash' >> ~/.bashrc	# sources setup.bash for future sessions. Use your own ROS workspace.
+
+Set RasPi Serial Permissions
+$ sudo adduser user $(stat --format="%G" /dev/ttyACM0 )
+
+RUN (ssh into Robot RasPi)
+ROBOT RPI4
+
+With cable plugged between USB Ports on RasPi Robot and Neato Botvac Diagnostic port (ls -l /dev/ttyACM0)
+$ ros2 launch botvac_node botvac_base.launch.py
+
+Optional provided ps4.config.yaml or f710.config.yaml are saved to /home/ubuntu/Desktop/config folder
+
+$ ros2 launch teleop_twist_joy teleop-launch.py config_filepath:='/home/ubuntu/Desktop/config/ps4.config.yaml'
+
+$ ros2 launch teleop_twist_joy teleop-launch.py config_filepath:='/home/ubuntu/Desktop/config/f710.config.yaml'
+
+WORKSTATION Launch SLAM Toolbox, rviz & Teleop in separate windows
+$ ros2 launch nav2_bringup bringup_launch.py use_sim_time:=False autostart:=True map:=/home/user/Desktop/maps/map.yaml slam:=True
+$ ros2 launch nav2_bringup rviz_launch.py
+
+$ ros2 run teleop_twist_keyboard teleop_twist_keyboard
+OR
+PS3/4 Joystick on RemotePC Press Share-PS Button to Pair. Check /dev/input/jsX with jstest-gtk
+Plugin Bluetooth USB Dongle - Connect PS4
+$ ros2 launch teleop_twist_joy teleop-launch.py joy_dev:='/dev/input/js0'
+
+OR
+
+$ ros2 launch teleop_twist_joy teleop-launch.py config_filepath:='/home/ubuntu/Desktop/config/ps4.config.yaml'
+
+$ ros2 launch teleop_twist_joy teleop-launch.py config_filepath:='/home/ubuntu/Desktop/config/f710.config.yaml'
+
+topic DIAGNOSTICS (In separate windows)
+$ ros2 topic echo /joy
+$ ros2 topic echo /cmd_vel
+$ ros2 topic info /cmd_vel
+
+Save the MAP
+$ ros2 run nav2_map_server map_saver_cli -f /home/ubuntu/Desktop/maps/map --ros-args -p save_map_timeout:=5000.0
+
+Kill the Toolbox and rviz by closing Terminal Window with CTRL-c
+
+Relaunch SLAM
+
+$ ros2 launch nav2_bringup bringup_launch.py use_sim_time:=False autostart:=True map:=/home/ubuntu/Desktop/maps/map.yaml
+
+$ ros2 launch nav2_bringup rviz_launch.py
+Click 2D Pose Estimate and place robot on map
+Set Navigational Goal
+
+Waypoint Navigation 
+Click "Waypoint/Nav Through Poses Mode", Click 2 or 3 "Nav2 Goal" , Click "Startup" 
+
+rqt DIAGNOSTICS
+$ rqt_gui Select Plugins - Topics - Node graph - Visualization
+$ rqt_graph
+
+When Done: On the RasPi Robot, STOP the botvac_node with ctrl-C .
+
+

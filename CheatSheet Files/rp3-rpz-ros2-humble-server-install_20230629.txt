@@ -1,0 +1,214 @@
+Neato Turtle RPi3b/1GB  Ubuntu 22.04 Server ROS2 Humble-Base	Oct 22, 2022
+/Users/Ross/Documents/ROS Projects/Cheatsheets & Install/Botvac/
+
+Based on https://github.com/cpeavy2/botvac_node (that was written for RPi4.4GB)
+
+Install on ROBOT ( my SD R11) Humble Server
+
+SD Card Suggest a higher speed 4k Ultra HD version, such as Kingston Canvas React 32GB 
+ubuntu-22.04.1-preinstalled-server-arm64+raspi.img
+
+Burn with Raspberry Pi Imager, configure SSH & WiFi Credentials
+https://linuxhint.com/install-ubuntu-22-04-lts-raspberry-pi/
+
+Boot up and wait for the Network Connection. Determine IP Address from connected monitor ($ ap a),  Router or Desktop WiFi Survey App. 
+From Desktop, ssh into Raspi > ssh ubuntu@IPADDRESS .
+Update & Upgrade: $ sudo apt update && sudo apt upgrade
+Install $ sudo apt install avahi-daemon to use hostname instead of IP Address in the ssh command. Enable on ROBOT $ /etc/init.d/avahi-daemon restart . This should be persistently permanent.
+
+Disable unattended upgrades
+Open automatic update setting file.
+$ sudo nano /etc/apt/apt.conf.d/20auto-upgrades
+
+Change the update settings as below.
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Unattended-Upgrade "0";
+
+$ sudo reboot
+
+Set the systemd to prevent boot-up delay even if there is no network at startup.
+$ systemctl mask systemd-networkd-wait-online.serviceDisable Suspend and Hibernation
+
+Install 4GB Swap File 
+https://www.digitalocean.com/community/tutorials/how-to-add-swap-space-on-ubuntu-22-04
+$ free -h
+$ df -h
+$ sudo fallocate -l 1G /swapfile
+$ ls -lh /swapfile
+$ sudo chmod 600 /swapfile 
+$ ls -lh /swapfile
+Output
+-rw------- 1 root root 1.0G Apr 25 11:14 /swapfile
+$ sudo mkswap /swapfile
+Output
+Setting up swapspace version 1, size = 1024 MiB (1073737728 bytes)
+no label, UUID=6e965805-2ab9-450f-aed6-577e74089dbf
+$ free -h
+Output
+              total        used        free      shared  buff/cache   available
+Mem:          981Mi       123Mi       644Mi       0.0Ki       213Mi       714Mi
+Swap:         1.0Gi          0B       1.0Gi
+
+sudo cp /etc/fstab /etc/fstab.bak
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+$ cat /proc/sys/vm/swappiness
+
+Install python3 libraries
+$ sudo apt install libpython3-dev
+$ sudo -H pip3 install --upgrade pip setuptools python3-wheel
+$ sudo apt install python3-argcomplete python3-colcon-common-extensions libboost-system-dev build-essential
+
+Install ROS2 Humble ros-humble-base from the ros.org ROS2 Debian Install Documentation or suggest using linorobot2 ros2me https://github.com/linorobot/rosme .
+Installs ros-humble-base (barebones) on non X86 machines, i.e. arm64/aarch64 from Linorobot2 Github, select master.
+$ sudo apt update
+$ git clone https://github.com/linorobot/ros2me/
+$ chmod 755 ./install
+$ bash ./install
+
+$ echo 'export ROS_DOMAIN_ID=0 #Neato Turtle' >> ~/.bashrc
+
+Configure Empty Workspace, e.g. botvac_ws/src
+https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html
+cd ~/  (Home Directory)
+mkdir -p botvac_ws/src
+cd botvac_ws
+$ colcon build --symlink-install --parallel-workers 2
+ 
+Configure .bashrc
+echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
+echo 'source ~/botvac_ws/install/setup.bash' >> ~/.bashrc
+echo 'ROS_DOMAIN_ID=0' >> ~/.bashrc
+From /home/username ,(~/) $ source .bashrc
+
+Check things look ok with $ printenv|grep ROS
+
+Update python3, OpenCV,  & setup tools
+python3 -m pip install --upgrade pip setuptools python3-wheel OpenCV
+
+If using USB Webcam
+pip install opencv-python
+
+Based on Neato Turtle by Camp Peavy 
+Note: These scripts assume navigation2 is installed on the Desktop Workstation from Debian Repository and map.yaml files are saved at /home/ubuntu/Desktop/maps where Username = ubuntu > change these scripts if username is different
+Location to save maps: mkdir -p /home/ubuntu/Desktop/maps
+Location for Game Controller configuration .yaml files: mkdir -p /home/ubuntu/Desktop/config
+
+INSTALL botvac packages on WORKSTATION Desktop (except kobuki_velocity_smoother)and ROBOT (all except na2 & nav2_bringup)
+cpeavy2/botvac_node https://github.com/cpeavy2/botvac_node
+
+On Ubuntu 22.04 Gnome Desktop WORKSTATION
+$ sudo apt install python3-argcomplete python3-colcon-common-extensions libboost-system-dev build-essential
+
+Install ROS2 Humble ros-humble-full following the ros.org ROS2 Documentation Debian Install, or using linorobot2 ros2me https://github.com/linorobot/rosme 
+Installs ros-humble-desktop (GUI apps) on X86_64 machines from Linorobot2 Github, select master.
+cd ~/
+$ sudo apt update
+$ git clone https://github.com/linorobot/ros2me/
+$ chmod 755 ./install
+$ bash ./install
+
+$ echo 'export ROS_DOMAIN_ID=0 #Neato Turtle' >> ~/.bashrc
+
+Configure Empty Workspace, e.g. botvac_ws/src
+https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html
+cd ~/  (Home Directory)
+
+Configure Empty Workspace, e.g. botvac_ws/src
+https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html
+cd ~/  (Home Directory)
+mkdir -p botvac_ws/src
+cd botvac_ws
+$ colcon build --symlink-install
+$ cd botvac_ws/src
+
+Configure & source workspace
+Configure .bashrc
+echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
+echo 'source ~/botvac_ws/install/setup.bash' >> ~/.bashrc
+echo 'ROS_DOMAIN_ID=0' >> ~/.bashrc 
+From /home/username ,(~/) $ source .bashrc
+
+sudo apt install ros-humble-xacro python3-rosdep
+sudo apt install ros-humble-navigation2
+sudo apt install ros-humble-nav2-bringup
+
+git clone https://github.com/cpeavy2/botvac_node.git
+git clone https://github.com/cpeavy2/neato_robot.git
+git clone https://github.com/kobuki-base/cmd_vel_mux.git
+git clone https://github.com/stonier/ecl_tools
+
+cd .. (You should be in ~/botvac_ws directory)
+If not already installed by ROS2 procedure: $ sudo rosdep init ! ONLY DO 1 TIME per installation
+$ rosdep update
+$ rosdep install --from-paths src --ignore-src -r -y
+And finally, go back to your workspace directory and compile the code.
+$ cd ~/botvac_ws
+$ colcon build --symlink-install
+From /home/username ,(~/) $ source .bashrc
+
+On ROBOT
+sudo apt install ros-humble-xacro python3-rosdep
+$sudo apt install ros-humble-v412-camera
+
+$ cd ~/botvac_ws/src
+git clone https://github.com/cpeavy2/botvac_node.git
+git clone https://github.com/cpeavy2/neato_robot.git
+git clone https://github.com/kobuki-base/cmd_vel_mux.git
+git clone https://github.com/kobuki-base/kobuki_velocity_smoother.git
+git clone https://github.com/stonier/ecl_tools
+
+Edit the botvac_node/launch/include/velocity_smoother_launch.py with $ nano velocity_smoother.launch.py, 
+revised line 12 to pkg_name = ‘kobuki_velocity_smoother’ , 
+add a new line 13 exe_name = ‘velocity_smoother' 
+revised line 41 executable = exe_name
+
+cd .. (You should be in ~/botvac_ws directory)
+If not already installed by ROS2 procedure: $ sudo rosdep init ! ONLY DO 1 TIME per installation
+$ rosdep update
+$ rosdep install --from-paths src --ignore-src -r -y
+And finally, go back to your workspace directory and compile the code.
+$ cd ~/botvac_ws
+$ /botvac_ws
+ $ colcon build --symlink-install --parallel-workers 2
+
+See: https://answers.ros.org/question/368249/colcon-build-number-of-threads/
+
+Builds in about 10 mins.
+
+Source new code
+cd ~/
+. .bashrc
+
+Since there is no "Desktop" folder on this server, configure a folder for the Game Controller config . yaml file
+cd ~/
+mkdir -p Desktop/config
+Copy f710.config.yaml from the USB32 Drive to this folder
+
+Set RasPi Serial Permissions
+$ sudo adduser ubuntu $(stat --format="%G" /dev/ttyACM0 )
+
+Optional Logitech F710 Gamepad based on https://github.com/ros2/teleop_twist_joy
+Configure Gamepad config on Robot, from my USB32 Drive with a custom f710.config.yaml and file described below
+Mount USB Drive
+$ sudo blkid
+$ sudo  mkdir /media/usb
+sudo mount /dev/sdb1 /media/usb
+
+Unmount
+sudo unmount /media/usb
+
+ROBOT RP3 LAUNCH 
+
+With cable plugged between USB Ports on RasPi Robot and Neato Botvac Diagnostic port (ls -l /dev/ttyACM0)
+$ ros2 launch botvac_node botvac_base.launch.py
+
+Optional provided ps4.config.yaml or f710.config.yaml are saved to /home/ubuntu/Desktop/config folder
+
+$ ros2 launch teleop_twist_joy teleop-launch.py config_filepath:='/home/ubuntu/Desktop/config/ps4.config.yaml'
+
+$ ros2 launch teleop_twist_joy teleop-launch.py config_filepath:='/home/ubuntu/Desktop/config/f710.config.yaml'
+
+
+
+
+
