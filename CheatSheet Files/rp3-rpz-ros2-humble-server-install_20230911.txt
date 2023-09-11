@@ -148,7 +148,7 @@ From /home/username ,(~/) $ source .bashrc
 
 On ROBOT
 sudo apt install ros-humble-xacro python3-rosdep
-$sudo apt install ros-humble-v412-camera
+$sudo apt install ros-humble-usb-cam
 
 $ cd ~/botvac_ws/src
 git clone https://github.com/cpeavy2/botvac_node.git
